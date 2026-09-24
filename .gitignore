@@ -1,0 +1,57 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.*
+!.env.production.template
+!.env.legacy.template
+!.env.low_capital.template
+
+# Runtime logs and databases
+logs/
+*.log
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Runtime state / generated artifacts
+data/*.json
+*.bin
+*.pkl
+*.pickle
+*.pt
+*.onnx
+*.ckpt
+
+# Generated reports / exports
+reports/*_report_*.html
+reports/*_*.csv
+
+# Local backups and patch snapshots
+backups/
+unused_scripts_backup/
+*.bak
+*.before_*
+
+# Temporary / diagnostics
+*.tmp
+*.temp
+pip_list.txt
+pip_check.txt

@@ -1,0 +1,7 @@
+Sensitive runtime files were intentionally excluded from this package:
+- .env and .env backup files
+- logs
+- SQLite databases
+- model binaries / encrypted config / runtime state
+
+Use .env.low_capital.template or APPLY_LOW_CAPITAL_BINANCE_CONFIG.ps1 to configure your local copy without exposing API keys.

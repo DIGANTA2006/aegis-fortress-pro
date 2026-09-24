@@ -1,0 +1,35 @@
+services:
+  aegis-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aegis-runtime
+    env_file:
+      - .env
+    environment:
+      AEGIS_HEALTH_HOST: 0.0.0.0
+    ports:
+      - "8080:8080"
+      - "9000:9000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    container_name: aegis-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - aegis-prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - aegis-runtime
+    restart: unless-stopped
+
+volumes:
+  aegis-prometheus-data:

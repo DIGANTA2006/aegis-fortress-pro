@@ -1,0 +1,48 @@
+# AEGIS PRO v2  –  Python dependencies
+# pip install -r requirements.txt
+
+# ---- Exchange connectivity ----
+ccxt>=4.2.0
+# WebSocket order book (ccxt.pro):
+# pip install "ccxt[async_support]"
+
+# ---- Data ----
+numpy>=1.26.0
+pandas>=2.2.0
+scipy>=1.12.0
+
+# ---- Machine learning ----
+xgboost>=2.0.0
+scikit-learn>=1.4.0
+
+# ---- Reinforcement learning ----
+torch>=2.2.0
+# Alternative: tensorflow>=2.15.0
+
+# ---- Statistical tests (pairs trading) ----
+statsmodels>=0.14.0
+
+# ---- Real encryption (AES-256 via Fernet) ----
+cryptography>=42.0.0
+
+# ---- Dashboard ----
+flask>=3.0.0
+
+# ---- System monitoring ----
+psutil>=5.9.0
+
+# ---- HTTP ----
+requests>=2.31.0
+urllib3>=2.0.0
+
+# ---- Async (for WebSocket order book) ----
+aiohttp>=3.9.0
+
+# ---- Optional: faster DataFrames ----
+# pyarrow>=15.0.0
+prometheus-client
+psutil
+pytest
+black
+ruff
+PyYAML==6.0.3

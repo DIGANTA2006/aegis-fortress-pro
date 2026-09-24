@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "aegis-runtime"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "aegis-runtime:9000"

@@ -1,0 +1,58 @@
+# Aegis v2 Default Configuration
+
+exchange:
+  primary: "binance"
+  fallback: "kraken"
+  timeout_seconds: 10
+  max_retries: 3
+
+trading:
+  default_symbol: "BTC/USDT"
+  max_position_pct: 0.2
+  base_order_size: 0.001
+  slippage_tolerance: 0.001
+
+risk:
+  max_drawdown_pct: 0.10
+  daily_loss_limit_pct: 0.05
+  base_risk_per_trade_pct: 0.01
+  kill_switch_enabled: true
+
+market_making:
+  base_spread: 0.002
+  min_spread: 0.0005
+  max_spread: 0.01
+  inventory_skew_factor: 0.5
+
+strategy:
+  regime_volatility_threshold: 0.02
+  liquidity_min_score: 1000.0
+  walk_forward_train_ratio: 0.7
+
+logging:
+  level: "INFO"
+  file: "logs/aegis.log"
+  max_bytes: 10485760
+  backup_count: 5
+
+database:
+  path: "data/aegis.db"
+  pool_size: 5
+
+monitoring:
+  health_check_interval: 30
+  metrics_port: 9090
+  alert_cooldown_seconds: 300
+
+
+low_capital:
+  auto_symbol_discovery: true
+  symbol_discovery_max_symbols: 5
+  symbol_discovery_refresh_seconds: 1800
+  strategy_target_notional: 6
+  strategy_min_order_notional: 5.5
+  strategy_max_position_notional: 6.8
+  take_profit_bps: 60
+  stop_loss_bps: 35
+  symbol_cooldown_after_exit_seconds: 900
+  loss_cooldown_seconds: 3600

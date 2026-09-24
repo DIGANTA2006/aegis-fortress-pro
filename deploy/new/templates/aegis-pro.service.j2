@@ -1,0 +1,14 @@
+[Unit]
+Description=AEGIS V2 Trading System
+After=network.target
+
+[Service]
+User=aegis
+WorkingDirectory=/opt/aegis_v2
+ExecStart=/opt/aegis_v2/venv/bin/python /opt/aegis_v2/main.py run
+Restart=on-failure
+MemoryMax=1G
+CPUQuota=150%
+
+[Install]
+WantedBy=multi-user.target

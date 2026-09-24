@@ -1,0 +1,208 @@
+---
+# deploy/playbook.yml
+# Ansible playbook: deploy AEGIS PRO v2 to a Ubuntu 22.04 cloud VM
+#
+# Usage:
+#   ansible-playbook -i inventory.ini playbook.yml --ask-vault-pass
+#
+# Variables in deploy/vars/secrets.yml (ansible-vault encrypted):
+#   binance_api_key, binance_secret, tg_token, tg_chat_id,
+#   aegis_config_password, bybit_api_key, bybit_secret, ...
+
+- name: Deploy AEGIS PRO v2
+  hosts: aegis_servers
+  become: true
+  vars:
+    app_user:    aegis
+    app_dir:     /opt/aegis-pro
+    data_dir:    /opt/aegis-data
+    venv_dir:    /opt/aegis-pro/venv
+    python_bin:  /usr/bin/python3.11
+    service_name: aegis-pro
+
+  vars_files:
+    - vars/secrets.yml
+
+  tasks:
+
+    # ----------------------------------------------------------------
+    # System preparation
+    # ----------------------------------------------------------------
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system packages
+      apt:
+        name:
+          - python3.11
+          - python3.11-venv
+          - python3.11-dev
+          - python3-pip
+          - build-essential
+          - gcc
+          - git
+          - curl
+          - htop
+          - ufw
+          - fail2ban
+          - logrotate
+        state: present
+
+    # ----------------------------------------------------------------
+    # Security hardening
+    # ----------------------------------------------------------------
+    - name: Configure UFW - deny all incoming by default
+      ufw:
+        policy: deny
+        direction: incoming
+
+    - name: Configure UFW - allow SSH
+      ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Configure UFW - allow dashboard port
+      ufw:
+        rule: allow
+        port: "8080"
+        proto: tcp
+        src: "{{ dashboard_allowed_ip | default('0.0.0.0/0') }}"
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+
+    - name: Enable fail2ban
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+    # ----------------------------------------------------------------
+    # Application user
+    # ----------------------------------------------------------------
+    - name: Create aegis user
+      user:
+        name: "{{ app_user }}"
+        shell: /bin/bash
+        home: /home/aegis
+        create_home: yes
+        system: yes
+
+    - name: Create application directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0750"
+      loop:
+        - "{{ app_dir }}"
+        - "{{ data_dir }}"
+        - "{{ data_dir }}/backups"
+        - "{{ data_dir }}/reports"
+
+    # ----------------------------------------------------------------
+    # Application deployment
+    # ----------------------------------------------------------------
+    - name: Copy application files
+      copy:
+        src: "{{ item }}"
+        dest: "{{ app_dir }}/{{ item | basename }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0640"
+      with_fileglob:
+        - "../*.py"
+        - "../requirements.txt"
+
+    - name: Create Python virtual environment
+      command: "{{ python_bin }} -m venv {{ venv_dir }}"
+      args:
+        creates: "{{ venv_dir }}/bin/python"
+      become_user: "{{ app_user }}"
+
+    - name: Install Python dependencies
+      pip:
+        requirements: "{{ app_dir }}/requirements.txt"
+        virtualenv: "{{ venv_dir }}"
+        state: present
+      become_user: "{{ app_user }}"
+
+    # ----------------------------------------------------------------
+    # Environment file (contains secrets)
+    # ----------------------------------------------------------------
+    - name: Deploy environment file
+      template:
+        src: env.j2
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0600"    # secrets: owner-only
+      no_log: true
+
+    # ----------------------------------------------------------------
+    # Systemd service
+    # ----------------------------------------------------------------
+    - name: Deploy systemd service file
+      template:
+        src: aegis-pro.service.j2
+        dest: "/etc/systemd/system/{{ service_name }}.service"
+        mode: "0644"
+      notify: reload systemd
+
+    - name: Enable and start AEGIS PRO service
+      systemd:
+        name: "{{ service_name }}"
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    # ----------------------------------------------------------------
+    # Log rotation
+    # ----------------------------------------------------------------
+    - name: Configure logrotate for AEGIS PRO
+      copy:
+        dest: /etc/logrotate.d/aegis-pro
+        content: |
+          {{ data_dir }}/*.log {
+              daily
+              rotate 14
+              compress
+              delaycompress
+              missingok
+              notifempty
+              create 0640 {{ app_user }} {{ app_user }}
+          }
+        mode: "0644"
+
+    # ----------------------------------------------------------------
+    # Monitoring: cron backup check
+    # ----------------------------------------------------------------
+    - name: Add cron job to verify bot heartbeat
+      cron:
+        name: "aegis heartbeat check"
+        minute: "*/10"
+        user: "{{ app_user }}"
+        job: >
+          python3 -c "
+          import json, time, sys
+          try:
+            d = json.load(open('{{ data_dir }}/heartbeat.json'))
+            age = time.time() - d.get('last_beat', 0)
+            if age > 600: sys.exit(1)
+          except: sys.exit(1)
+          " || systemctl restart {{ service_name }}
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart aegis
+      systemd:
+        name: "{{ service_name }}"
+        state: restarted
